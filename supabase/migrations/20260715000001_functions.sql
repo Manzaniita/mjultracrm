@@ -644,7 +644,7 @@ $$;
 -- ============================================================
 
 grant execute on function public.calcular_precio_automatico(numeric, numeric, numeric) to authenticated;
-grant execute on function public.crear_consignacion(uuid, jsonb, uuid) to authenticated;
+grant execute on function public.crear_consignacion(uuid, jsonb, uuid, uuid) to authenticated;
 grant execute on function public.aprobar_pedido_reposicion(uuid, uuid) to authenticated;
 grant execute on function public.registrar_venta(jsonb) to authenticated;
 grant execute on function public.anular_venta(uuid, text, uuid) to authenticated;
