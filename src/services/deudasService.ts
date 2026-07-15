@@ -108,11 +108,15 @@ async function obtenerDeudasInterno(
     const idReventa = fila.reventa_id ?? 'sin_reventa';
 
     if (!mapa.has(idReventa)) {
-      const { data: reventa } = await supabase
-        .from('perfiles')
-        .select('*')
-        .eq('id', idReventa)
-        .single();
+      let reventa: PerfilRow | null = null;
+      if (idReventa !== 'sin_reventa') {
+        const { data } = await supabase
+          .from('perfiles')
+          .select('*')
+          .eq('id', idReventa)
+          .maybeSingle();
+        reventa = data ?? null;
+      }
 
       mapa.set(idReventa, {
         reventa: reventa ?? ({

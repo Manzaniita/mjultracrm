@@ -27,12 +27,19 @@ export function PedidosPage() {
   const [pedidoSeleccionado, setPedidoSeleccionado] = React.useState<PedidoConDetalle | null>(null);
   const [cantidadesAprobadas, setCantidadesAprobadas] = React.useState<Record<string, string>>({});
   const [motivoRechazo, setMotivoRechazo] = React.useState('');
+  const [error, setError] = React.useState<string | null>(null);
 
   const cargar = React.useCallback(async () => {
     setLoading(true);
-    const data = await listarPedidosReposicion();
-    setPedidos(data);
-    setLoading(false);
+    setError(null);
+    try {
+      const data = await listarPedidosReposicion();
+      setPedidos(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al cargar pedidos.');
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   React.useEffect(() => {
@@ -52,6 +59,7 @@ export function PedidosPage() {
   const handleAprobar = async () => {
     if (!pedidoSeleccionado) return;
     setProcesando(true);
+    setError(null);
     try {
       const lineas = Object.entries(cantidadesAprobadas).map(([linea_id, cantidad]) => ({
         linea_id,
@@ -60,6 +68,8 @@ export function PedidosPage() {
       await aprobarPedidoReposicion(pedidoSeleccionado.id, { lineas });
       setPedidoSeleccionado(null);
       await cargar();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al aprobar el pedido.');
     } finally {
       setProcesando(false);
     }
@@ -68,10 +78,13 @@ export function PedidosPage() {
   const handleRechazar = async () => {
     if (!pedidoSeleccionado) return;
     setProcesando(true);
+    setError(null);
     try {
       await rechazarPedidoReposicion(pedidoSeleccionado.id, motivoRechazo);
       setPedidoSeleccionado(null);
       await cargar();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al rechazar el pedido.');
     } finally {
       setProcesando(false);
     }
@@ -118,6 +131,11 @@ export function PedidosPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      {error && (
+        <p className="rounded-md bg-red-500/10 px-3 py-2 text-sm font-medium text-red-400">
+          {error}
+        </p>
+      )}
       <div>
         <h1 className="text-2xl font-bold text-textPrimary">Pedidos de reposición</h1>
         <p className="text-sm text-textMuted">Bandeja de pedidos de las reventas</p>

@@ -38,20 +38,27 @@ export function VentasPage() {
   const [loading, setLoading] = React.useState(true);
   const [anulando, setAnulando] = React.useState<string | null>(null);
   const [motivo, setMotivo] = React.useState('');
+  const [error, setError] = React.useState<string | null>(null);
 
   const cargar = React.useCallback(async () => {
     setLoading(true);
-    const [v, varList, l, tc] = await Promise.all([
-      listarVentas(),
-      obtenerVariantesConPrecios(),
-      obtenerListasPrecios(),
-      obtenerTipoCambioVigente().catch(() => null),
-    ]);
-    setVentas(v);
-    setVariantes(varList);
-    setListas(l);
-    setTcVigente(tc);
-    setLoading(false);
+    setError(null);
+    try {
+      const [v, varList, l, tc] = await Promise.all([
+        listarVentas(),
+        obtenerVariantesConPrecios(),
+        obtenerListasPrecios(),
+        obtenerTipoCambioVigente().catch(() => null),
+      ]);
+      setVentas(v);
+      setVariantes(varList);
+      setListas(l);
+      setTcVigente(tc);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al cargar ventas.');
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   React.useEffect(() => {
@@ -119,6 +126,11 @@ export function VentasPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      {error && (
+        <p className="rounded-md bg-red-500/10 px-3 py-2 text-sm font-medium text-red-400">
+          {error}
+        </p>
+      )}
       <div>
         <h1 className="text-2xl font-bold text-textPrimary">Ventas</h1>
         <p className="text-sm text-textMuted">Listado global y registro de ventas directas</p>

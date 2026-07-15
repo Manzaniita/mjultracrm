@@ -48,13 +48,20 @@ export function CajaPage() {
   const [metodo, setMetodo] = React.useState<MetodoPago>('efectivo');
   const [monto, setMonto] = React.useState('');
   const [motivo, setMotivo] = React.useState('');
+  const [error, setError] = React.useState<string | null>(null);
 
   const cargar = React.useCallback(async () => {
     setLoading(true);
-    const [m, s] = await Promise.all([listarMovimientos(), calcularSaldosPorMetodo()]);
-    setMovimientos(m);
-    setSaldos(s);
-    setLoading(false);
+    setError(null);
+    try {
+      const [m, s] = await Promise.all([listarMovimientos(), calcularSaldosPorMetodo()]);
+      setMovimientos(m);
+      setSaldos(s);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al cargar caja.');
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   React.useEffect(() => {
@@ -63,16 +70,21 @@ export function CajaPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await crearMovimientoManual({
-      tipo,
-      metodo,
-      monto_ars: Number(monto),
-      motivo,
-    });
-    setModalOpen(false);
-    setMonto('');
-    setMotivo('');
-    await cargar();
+    setError(null);
+    try {
+      await crearMovimientoManual({
+        tipo,
+        metodo,
+        monto_ars: Number(monto),
+        motivo,
+      });
+      setModalOpen(false);
+      setMonto('');
+      setMotivo('');
+      await cargar();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al cargar el movimiento.');
+    }
   };
 
   const columns: Column<CajaMovimientoRow>[] = [
@@ -111,6 +123,11 @@ export function CajaPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      {error && (
+        <p className="rounded-md bg-red-500/10 px-3 py-2 text-sm font-medium text-red-400">
+          {error}
+        </p>
+      )}
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-bold text-textPrimary">Caja</h1>

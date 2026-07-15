@@ -62,18 +62,33 @@ export function PreciosPage() {
   };
 
   const handleOverride = async (varianteId: string, listaId: string, precioArs: number) => {
-    await aplicarOverrideManual({ variante_id: varianteId, lista_id: listaId, precio_ars: precioArs });
-    await cargar();
+    setError(null);
+    try {
+      await aplicarOverrideManual({ variante_id: varianteId, lista_id: listaId, precio_ars: precioArs });
+      await cargar();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al aplicar el precio manual.');
+    }
   };
 
   const handleLiberar = async (varianteId: string, listaId: string) => {
-    await liberarPrecioManual(varianteId, listaId);
-    await cargar();
+    setError(null);
+    try {
+      await liberarPrecioManual(varianteId, listaId);
+      await cargar();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al liberar el precio manual.');
+    }
   };
 
   const handleEdicionMasiva = async (listaId: string, costoUsd: number, precioArs: number) => {
-    await edicionMasivaPorCosto({ lista_id: listaId, costo_usd: costoUsd, precio_ars: precioArs });
-    await cargar();
+    setError(null);
+    try {
+      await edicionMasivaPorCosto({ lista_id: listaId, costo_usd: costoUsd, precio_ars: precioArs });
+      await cargar();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error en la edición masiva.');
+    }
   };
 
   const handleTcCargado = (tc: { valor: number }) => {
@@ -97,7 +112,7 @@ export function PreciosPage() {
       </div>
 
       {error && (
-        <p className="rounded-md bg-red-500/10 px-4 py-3 text-sm font-medium text-red-400">
+        <p className="rounded-md bg-red-500/10 px-3 py-2 text-sm font-medium text-red-400">
           {error}
         </p>
       )}

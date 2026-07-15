@@ -16,12 +16,19 @@ function formatArs(valor: number): string {
 export function DeudasPage() {
   const [deudores, setDeudores] = React.useState<DeudaPorReventa[]>([]);
   const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
 
   const cargar = React.useCallback(async () => {
     setLoading(true);
-    const data = await detalleDeudaPorVenta();
-    setDeudores(data);
-    setLoading(false);
+    setError(null);
+    try {
+      const data = await detalleDeudaPorVenta();
+      setDeudores(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al cargar deudas.');
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   React.useEffect(() => {
@@ -70,6 +77,11 @@ export function DeudasPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      {error && (
+        <p className="rounded-md bg-red-500/10 px-3 py-2 text-sm font-medium text-red-400">
+          {error}
+        </p>
+      )}
       <div>
         <h1 className="text-2xl font-bold text-textPrimary">Deudas</h1>
         <p className="text-sm text-textMuted">Ranking de deudores y saldos en la calle</p>

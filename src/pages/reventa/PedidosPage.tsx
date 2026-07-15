@@ -27,13 +27,20 @@ export function PedidosPage() {
   const [lineas, setLineas] = React.useState<{ variante_id: string; cantidad: string }[]>([
     { variante_id: '', cantidad: '1' },
   ]);
+  const [error, setError] = React.useState<string | null>(null);
 
   const cargar = React.useCallback(async () => {
     setLoading(true);
-    const [p, v] = await Promise.all([listarMisPedidosReposicion(), obtenerVariantesConPrecios()]);
-    setPedidos(p);
-    setVariantes(v);
-    setLoading(false);
+    setError(null);
+    try {
+      const [p, v] = await Promise.all([listarMisPedidosReposicion(), obtenerVariantesConPrecios()]);
+      setPedidos(p);
+      setVariantes(v);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al cargar pedidos.');
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   React.useEffect(() => {
@@ -50,17 +57,22 @@ export function PedidosPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const lineasLimpias = lineas
-      .filter((l) => l.variante_id)
-      .map((l) => ({
-        variante_id: l.variante_id,
-        cantidad_solicitada: Number(l.cantidad),
-      }));
+    setError(null);
+    try {
+      const lineasLimpias = lineas
+        .filter((l) => l.variante_id)
+        .map((l) => ({
+          variante_id: l.variante_id,
+          cantidad_solicitada: Number(l.cantidad),
+        }));
 
-    await crearPedidoReposicion({ lineas: lineasLimpias });
-    setModalOpen(false);
-    setLineas([{ variante_id: '', cantidad: '1' }]);
-    await cargar();
+      await crearPedidoReposicion({ lineas: lineasLimpias });
+      setModalOpen(false);
+      setLineas([{ variante_id: '', cantidad: '1' }]);
+      await cargar();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al crear el pedido.');
+    }
   };
 
   const columns: Column<PedidoConDetalle>[] = [
@@ -88,6 +100,11 @@ export function PedidosPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      {error && (
+        <p className="rounded-md bg-red-500/10 px-3 py-2 text-sm font-medium text-red-400">
+          {error}
+        </p>
+      )}
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-bold text-textPrimary">Mis pedidos</h1>

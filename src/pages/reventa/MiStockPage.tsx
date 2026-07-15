@@ -8,12 +8,19 @@ import type { StockConsignadoConDetalle } from '@/services/consignacionesService
 export function MiStockPage() {
   const [stock, setStock] = React.useState<StockConsignadoConDetalle[]>([]);
   const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
 
   const cargar = React.useCallback(async () => {
     setLoading(true);
-    const data = await obtenerMiStock();
-    setStock(data);
-    setLoading(false);
+    setError(null);
+    try {
+      const data = await obtenerMiStock();
+      setStock(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al cargar el stock.');
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   React.useEffect(() => {
@@ -42,6 +49,11 @@ export function MiStockPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      {error && (
+        <p className="rounded-md bg-red-500/10 px-3 py-2 text-sm font-medium text-red-400">
+          {error}
+        </p>
+      )}
       <div>
         <h1 className="text-2xl font-bold text-textPrimary">Mi stock</h1>
         <p className="text-sm text-textMuted">Mercadería consignada disponible</p>

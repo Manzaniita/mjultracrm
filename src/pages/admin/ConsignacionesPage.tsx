@@ -27,18 +27,25 @@ export function ConsignacionesPage() {
   const [lineas, setLineas] = React.useState<{ variante_id: string; cantidad: string }[]>([
     { variante_id: '', cantidad: '1' },
   ]);
+  const [error, setError] = React.useState<string | null>(null);
 
   const cargar = React.useCallback(async () => {
     setLoading(true);
-    const [c, r, v] = await Promise.all([
-      listarConsignaciones(),
-      listarPerfiles().then((p) => p.filter((x) => x.rol === 'reventa')),
-      obtenerVariantesConPrecios(),
-    ]);
-    setConsignaciones(c);
-    setReventas(r);
-    setVariantes(v);
-    setLoading(false);
+    setError(null);
+    try {
+      const [c, r, v] = await Promise.all([
+        listarConsignaciones(),
+        listarPerfiles().then((p) => p.filter((x) => x.rol === 'reventa')),
+        obtenerVariantesConPrecios(),
+      ]);
+      setConsignaciones(c);
+      setReventas(r);
+      setVariantes(v);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al cargar consignaciones.');
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   React.useEffect(() => {
@@ -55,18 +62,23 @@ export function ConsignacionesPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const lineasLimpias = lineas
-      .filter((l) => l.variante_id)
-      .map((l) => ({
-        variante_id: l.variante_id,
-        cantidad: Number(l.cantidad),
-      }));
+    setError(null);
+    try {
+      const lineasLimpias = lineas
+        .filter((l) => l.variante_id)
+        .map((l) => ({
+          variante_id: l.variante_id,
+          cantidad: Number(l.cantidad),
+        }));
 
-    await crearConsignacion({ reventa_id: reventaId, lineas: lineasLimpias });
-    setModalOpen(false);
-    setReventaId('');
-    setLineas([{ variante_id: '', cantidad: '1' }]);
-    await cargar();
+      await crearConsignacion({ reventa_id: reventaId, lineas: lineasLimpias });
+      setModalOpen(false);
+      setReventaId('');
+      setLineas([{ variante_id: '', cantidad: '1' }]);
+      await cargar();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al crear la consignación.');
+    }
   };
 
   const columns: Column<ConsignacionConDetalle>[] = [
@@ -94,6 +106,11 @@ export function ConsignacionesPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      {error && (
+        <p className="rounded-md bg-red-500/10 px-3 py-2 text-sm font-medium text-red-400">
+          {error}
+        </p>
+      )}
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-bold text-textPrimary">Consignaciones</h1>

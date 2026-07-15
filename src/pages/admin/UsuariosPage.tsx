@@ -18,12 +18,19 @@ export function UsuariosPage() {
   const [password, setPassword] = React.useState('');
   const [telefono, setTelefono] = React.useState('');
   const [direccion, setDireccion] = React.useState('');
+  const [error, setError] = React.useState<string | null>(null);
 
   const cargar = React.useCallback(async () => {
     setLoading(true);
-    const data = await listarPerfiles();
-    setReventas(data.filter((p) => p.rol === 'reventa'));
-    setLoading(false);
+    setError(null);
+    try {
+      const data = await listarPerfiles();
+      setReventas(data.filter((p) => p.rol === 'reventa'));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al cargar usuarios.');
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   React.useEffect(() => {
@@ -32,20 +39,25 @@ export function UsuariosPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await crearReventa({
-      email,
-      password,
-      nombre,
-      telefono: telefono || null,
-      direccion: direccion || null,
-    });
-    setModalOpen(false);
-    setNombre('');
-    setEmail('');
-    setPassword('');
-    setTelefono('');
-    setDireccion('');
-    await cargar();
+    setError(null);
+    try {
+      await crearReventa({
+        email,
+        password,
+        nombre,
+        telefono: telefono || null,
+        direccion: direccion || null,
+      });
+      setModalOpen(false);
+      setNombre('');
+      setEmail('');
+      setPassword('');
+      setTelefono('');
+      setDireccion('');
+      await cargar();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al crear la reventa.');
+    }
   };
 
   const columns: Column<PerfilRow>[] = [
@@ -69,6 +81,11 @@ export function UsuariosPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      {error && (
+        <p className="rounded-md bg-red-500/10 px-3 py-2 text-sm font-medium text-red-400">
+          {error}
+        </p>
+      )}
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-bold text-textPrimary">Usuarios</h1>

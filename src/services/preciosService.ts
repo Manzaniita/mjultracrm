@@ -49,7 +49,7 @@ export async function obtenerTipoCambioVigente(): Promise<number> {
     .select('valor')
     .order('fecha', { ascending: false })
     .limit(1)
-    .single();
+    .maybeSingle();
 
   if (error) handleSupabaseError(error);
   if (!data) throw new CatalogoError('No hay tipo de cambio cargado.');
@@ -140,9 +140,9 @@ export async function obtenerPrecioAplicado(
     .select('*')
     .eq('variante_id', variante.id)
     .eq('lista_id', lista.id)
-    .single();
+    .maybeSingle();
 
-  if (error && error.code !== 'PGRST116') {
+  if (error) {
     handleSupabaseError(error);
   }
 

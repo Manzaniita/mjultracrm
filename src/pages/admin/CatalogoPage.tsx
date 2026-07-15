@@ -49,14 +49,21 @@ function formatUsd(valor: number): string {
 function CategoriasTab() {
   const [items, setItems] = React.useState<Categoria[]>([]);
   const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
   const [nombre, setNombre] = React.useState('');
   const [editando, setEditando] = React.useState<Categoria | null>(null);
 
   const cargar = React.useCallback(async () => {
     setLoading(true);
-    const data = await listarCategorias();
-    setItems(data);
-    setLoading(false);
+    setError(null);
+    try {
+      const data = await listarCategorias();
+      setItems(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al cargar categorías.');
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   React.useEffect(() => {
@@ -65,15 +72,20 @@ function CategoriasTab() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const form: CategoriaForm = { nombre };
-    if (editando) {
-      await actualizarCategoria(editando.id, form);
-    } else {
-      await crearCategoria(form);
+    setError(null);
+    try {
+      const form: CategoriaForm = { nombre };
+      if (editando) {
+        await actualizarCategoria(editando.id, form);
+      } else {
+        await crearCategoria(form);
+      }
+      setNombre('');
+      setEditando(null);
+      await cargar();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al guardar la categoría.');
     }
-    setNombre('');
-    setEditando(null);
-    await cargar();
   };
 
   const handleEdit = (item: Categoria) => {
@@ -83,8 +95,13 @@ function CategoriasTab() {
 
   const handleDelete = async (id: string) => {
     if (!confirm('¿Eliminar esta categoría?')) return;
-    await eliminarCategoria(id);
-    await cargar();
+    setError(null);
+    try {
+      await eliminarCategoria(id);
+      await cargar();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al eliminar la categoría.');
+    }
   };
 
   const columns: Column<Categoria>[] = [
@@ -108,6 +125,11 @@ function CategoriasTab() {
 
   return (
     <div className="flex flex-col gap-4">
+      {error && (
+        <p className="rounded-md bg-red-500/10 px-3 py-2 text-sm font-medium text-red-400">
+          {error}
+        </p>
+      )}
       <form onSubmit={handleSubmit} className="flex items-end gap-2">
         <div className="flex-1">
           <Input
@@ -115,6 +137,7 @@ function CategoriasTab() {
             value={nombre}
             onChange={(e) => setNombre(e.target.value)}
             placeholder="Nombre de la categoría"
+            required
           />
         </div>
         <Button type="submit">{editando ? 'Guardar' : 'Crear'}</Button>
@@ -141,6 +164,7 @@ function CategoriasTab() {
 function AtributosTab() {
   const [items, setItems] = React.useState<AtributoConValores[]>([]);
   const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
   const [nombre, setNombre] = React.useState('');
   const [valores, setValores] = React.useState<{ id?: string; valor: string }[]>([
     { valor: '' },
@@ -149,9 +173,15 @@ function AtributosTab() {
 
   const cargar = React.useCallback(async () => {
     setLoading(true);
-    const data = await listarAtributosConValores();
-    setItems(data);
-    setLoading(false);
+    setError(null);
+    try {
+      const data = await listarAtributosConValores();
+      setItems(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al cargar atributos.');
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   React.useEffect(() => {
@@ -160,19 +190,24 @@ function AtributosTab() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const form: AtributoForm = {
-      nombre,
-      valores: valores.filter((v) => v.valor.trim() !== ''),
-    };
-    if (editando) {
-      await actualizarAtributo(editando.id, form);
-    } else {
-      await crearAtributo(form);
+    setError(null);
+    try {
+      const form: AtributoForm = {
+        nombre,
+        valores: valores.filter((v) => v.valor.trim() !== ''),
+      };
+      if (editando) {
+        await actualizarAtributo(editando.id, form);
+      } else {
+        await crearAtributo(form);
+      }
+      setNombre('');
+      setValores([{ valor: '' }]);
+      setEditando(null);
+      await cargar();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al guardar el atributo.');
     }
-    setNombre('');
-    setValores([{ valor: '' }]);
-    setEditando(null);
-    await cargar();
   };
 
   const handleEdit = (item: AtributoConValores) => {
@@ -187,8 +222,13 @@ function AtributosTab() {
 
   const handleDelete = async (id: string) => {
     if (!confirm('¿Eliminar este atributo?')) return;
-    await eliminarAtributo(id);
-    await cargar();
+    setError(null);
+    try {
+      await eliminarAtributo(id);
+      await cargar();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al eliminar el atributo.');
+    }
   };
 
   const addValor = () => setValores([...valores, { valor: '' }]);
@@ -202,12 +242,18 @@ function AtributosTab() {
 
   return (
     <div className="flex flex-col gap-4">
+      {error && (
+        <p className="rounded-md bg-red-500/10 px-3 py-2 text-sm font-medium text-red-400">
+          {error}
+        </p>
+      )}
       <form onSubmit={handleSubmit} className="flex flex-col gap-4 rounded-lg border border-border bg-surface p-4">
         <Input
           label="Nombre del atributo"
           value={nombre}
           onChange={(e) => setNombre(e.target.value)}
           placeholder="Ej: Sabor, Talle, Color"
+          required
         />
         <div>
           <label className="mb-2 block text-sm font-medium text-textMuted">Valores</label>
@@ -292,6 +338,7 @@ function ProductosTab() {
   const [categorias, setCategorias] = React.useState<Categoria[]>([]);
   const [atributos, setAtributos] = React.useState<AtributoConValores[]>([]);
   const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
 
   const [nombre, setNombre] = React.useState('');
   const [categoriaId, setCategoriaId] = React.useState('');
@@ -300,15 +347,21 @@ function ProductosTab() {
 
   const cargar = React.useCallback(async () => {
     setLoading(true);
-    const [p, c, a] = await Promise.all([
-      listarProductos(),
-      listarCategorias(),
-      listarAtributosConValores(),
-    ]);
-    setProductos(p);
-    setCategorias(c);
-    setAtributos(a);
-    setLoading(false);
+    setError(null);
+    try {
+      const [p, c, a] = await Promise.all([
+        listarProductos(),
+        listarCategorias(),
+        listarAtributosConValores(),
+      ]);
+      setProductos(p);
+      setCategorias(c);
+      setAtributos(a);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al cargar productos.');
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   React.useEffect(() => {
@@ -317,18 +370,23 @@ function ProductosTab() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const form: ProductoForm = {
-      nombre,
-      categoria_id: categoriaId || null,
-      atributo_ids: atributoIds,
-    };
-    if (editando) {
-      await actualizarProducto(editando.id, form);
-    } else {
-      await crearProducto(form);
+    setError(null);
+    try {
+      const form: ProductoForm = {
+        nombre,
+        categoria_id: categoriaId || null,
+        atributo_ids: atributoIds,
+      };
+      if (editando) {
+        await actualizarProducto(editando.id, form);
+      } else {
+        await crearProducto(form);
+      }
+      resetForm();
+      await cargar();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al guardar el producto.');
     }
-    resetForm();
-    await cargar();
   };
 
   const resetForm = () => {
@@ -347,8 +405,13 @@ function ProductosTab() {
 
   const handleDelete = async (id: string) => {
     if (!confirm('¿Eliminar este producto?')) return;
-    await eliminarProducto(id);
-    await cargar();
+    setError(null);
+    try {
+      await eliminarProducto(id);
+      await cargar();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al eliminar el producto.');
+    }
   };
 
   const toggleAtributo = (id: string) => {
@@ -389,6 +452,11 @@ function ProductosTab() {
 
   return (
     <div className="flex flex-col gap-4">
+      {error && (
+        <p className="rounded-md bg-red-500/10 px-3 py-2 text-sm font-medium text-red-400">
+          {error}
+        </p>
+      )}
       <form
         onSubmit={handleSubmit}
         className="flex flex-col gap-4 rounded-lg border border-border bg-surface p-4"
@@ -398,6 +466,7 @@ function ProductosTab() {
           value={nombre}
           onChange={(e) => setNombre(e.target.value)}
           placeholder="Ej: Elfbar BC5000"
+          required
         />
         <Select
           label="Categoría"
@@ -455,6 +524,7 @@ function VariantesTab() {
   const [variantes, setVariantes] = React.useState<VarianteListado[]>([]);
   const [atributos, setAtributos] = React.useState<AtributoConValores[]>([]);
   const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
 
   const [productoId, setProductoId] = React.useState('');
   const [sku, setSku] = React.useState('');
@@ -465,13 +535,21 @@ function VariantesTab() {
   const [modalOpen, setModalOpen] = React.useState(false);
 
   const cargarProductos = React.useCallback(async () => {
-    const data = await listarProductos();
-    setProductos(data);
+    try {
+      const data = await listarProductos();
+      setProductos(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al cargar productos.');
+    }
   }, []);
 
   const cargarAtributos = React.useCallback(async () => {
-    const data = await listarAtributosConValores();
-    setAtributos(data);
+    try {
+      const data = await listarAtributosConValores();
+      setAtributos(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al cargar atributos.');
+    }
   }, []);
 
   React.useEffect(() => {
@@ -490,9 +568,15 @@ function VariantesTab() {
       return;
     }
     setLoading(true);
-    const data = await listarVariantesPorProducto(productoId);
-    setVariantes(data);
-    setLoading(false);
+    setError(null);
+    try {
+      const data = await listarVariantesPorProducto(productoId);
+      setVariantes(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al cargar variantes.');
+    } finally {
+      setLoading(false);
+    }
   }, [productoId]);
 
   React.useEffect(() => {
@@ -509,28 +593,33 @@ function VariantesTab() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const costo = Number(costoUsd.replace(',', '.'));
-    const stock = Number(stockCentral);
-    if (editando) {
-      await actualizarVariante(editando.id, {
-        sku: sku || null,
-        costo_usd: costo,
-        stock_central: stock,
-        atributo_valor_ids: atributoValorIds,
-      });
-    } else {
-      const form: VarianteForm = {
-        producto_id: productoId,
-        sku: sku || null,
-        costo_usd: costo,
-        stock_central: stock,
-        atributo_valor_ids: atributoValorIds,
-      };
-      await crearVariante(form);
+    setError(null);
+    try {
+      const costo = Number(costoUsd.replace(',', '.'));
+      const stock = Number(stockCentral);
+      if (editando) {
+        await actualizarVariante(editando.id, {
+          sku: sku || null,
+          costo_usd: costo,
+          stock_central: stock,
+          atributo_valor_ids: atributoValorIds,
+        });
+      } else {
+        const form: VarianteForm = {
+          producto_id: productoId,
+          sku: sku || null,
+          costo_usd: costo,
+          stock_central: stock,
+          atributo_valor_ids: atributoValorIds,
+        };
+        await crearVariante(form);
+      }
+      resetForm();
+      setModalOpen(false);
+      await cargarVariantes();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al guardar la variante.');
     }
-    resetForm();
-    setModalOpen(false);
-    await cargarVariantes();
   };
 
   const handleEdit = (v: VarianteListado) => {
@@ -544,8 +633,13 @@ function VariantesTab() {
 
   const handleDelete = async (id: string) => {
     if (!confirm('¿Eliminar esta variante?')) return;
-    await eliminarVariante(id);
-    await cargarVariantes();
+    setError(null);
+    try {
+      await eliminarVariante(id);
+      await cargarVariantes();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al eliminar la variante.');
+    }
   };
 
   const toggleValor = (id: string) => {
@@ -599,6 +693,11 @@ function VariantesTab() {
 
   return (
     <div className="flex flex-col gap-4">
+      {error && (
+        <p className="rounded-md bg-red-500/10 px-3 py-2 text-sm font-medium text-red-400">
+          {error}
+        </p>
+      )}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
         <div className="flex-1">
           <Select

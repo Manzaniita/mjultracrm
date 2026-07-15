@@ -32,12 +32,19 @@ export function MiDeudaPage() {
   const [ventaPago, setVentaPago] = React.useState<VentaRow & { deuda: number } | null>(null);
   const [monto, setMonto] = React.useState('');
   const [metodo, setMetodo] = React.useState<'efectivo' | 'transferencia'>('efectivo');
+  const [error, setError] = React.useState<string | null>(null);
 
   const cargar = React.useCallback(async () => {
     setLoading(true);
-    const data = await obtenerMiDeuda();
-    setDeuda(data);
-    setLoading(false);
+    setError(null);
+    try {
+      const data = await obtenerMiDeuda();
+      setDeuda(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al cargar la deuda.');
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   React.useEffect(() => {
@@ -47,14 +54,19 @@ export function MiDeudaPage() {
   const handlePago = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!ventaPago) return;
-    await crearPago({
-      venta_id: ventaPago.id,
-      monto_ars: Number(monto),
-      metodo,
-    });
-    setVentaPago(null);
-    setMonto('');
-    await cargar();
+    setError(null);
+    try {
+      await crearPago({
+        venta_id: ventaPago.id,
+        monto_ars: Number(monto),
+        metodo,
+      });
+      setVentaPago(null);
+      setMonto('');
+      await cargar();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al registrar el pago.');
+    }
   };
 
   const columns: Column<VentaRow & { deuda: number; pagos: PagoRow[] }>[] = [
@@ -122,6 +134,11 @@ export function MiDeudaPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      {error && (
+        <p className="rounded-md bg-red-500/10 px-3 py-2 text-sm font-medium text-red-400">
+          {error}
+        </p>
+      )}
       <div>
         <h1 className="text-2xl font-bold text-textPrimary">Mi deuda</h1>
         <p className="text-sm text-textMuted">Resumen de ventas y pagos pendientes</p>
